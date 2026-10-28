@@ -2,6 +2,20 @@
 # Copy to config.yaml and adjust the accounts to match your own journals.
 # See README.md for what each key does. All accounts and payees here are
 # fictional and exist only to make the included demo journals work.
+#
+# REQUIRED sections: the server refuses to start if any of these is
+# missing (a missing key produces an error naming every missing key and
+# what to add). The required sections are: nas_path, top_journal,
+# current_year, budget_locations, liability_locations,
+# expense_locations, payment_sources, transfer_journal, and server
+# (with bind_address and port inside it). transfer_journal must also be
+# non-empty. NOTE: liability_locations must be present even if you have
+# no liabilities -- set it to [] rather than deleting the key.
+#
+# OPTIONAL sections (safe to omit): credit_locations (omit = no
+# auto-cover UI), safe_to_spend_account, safe_to_spend_header
+# (default "Checking"), and budget_entries (omit = no budget cards).
+# budget_limits is a legacy key, also optional, and not shown here.
 
 nas_path: "./demo_journals"
 top_journal: "current.journal"

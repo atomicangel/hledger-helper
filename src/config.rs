@@ -120,6 +120,81 @@ impl Config {
         let content = fs::read_to_string(path)
             .map_err(|e| ConfigError::ReadFailed(path.to_string(), e))?;
 
+        // Friendly errors for missing required keys. Serde's missing-field
+        // error names a single field and says nothing about what it is
+        // for, so check presence up front and report every missing key
+        // at once, with an explanation of what to add. A key counts as
+        // present even with an empty (null) value -- e.g. a bare
+        // `liability_locations:` with no entries loads fine today -- so
+        // only absent keys are reported here. Malformed YAML (not a
+        // mapping, or unparsable at all) falls through to the normal
+        // parse below, which reports it as a parse error.
+        if let Ok(serde_yaml::Value::Mapping(mapping)) =
+            serde_yaml::from_str::<serde_yaml::Value>(&content)
+        {
+            let keys: Vec<&str> = mapping
+                .iter()
+                .filter_map(|(k, _)| k.as_str())
+                .collect();
+            let mut missing: Vec<String> = Vec::new();
+            for (key, explanation) in [
+                (
+                    "nas_path",
+                    "path to the directory containing your hledger journals (e.g. ./demo_journals)",
+                ),
+                (
+                    "top_journal",
+                    "entry-point journal file (e.g. current.journal)",
+                ),
+                (
+                    "current_year",
+                    "current year for journal file routing (e.g. 2026)",
+                ),
+                (
+                    "budget_locations",
+                    "account prefixes for budget accounts (e.g. [\"assets:Bank:Checking:\"])",
+                ),
+                (
+                    "liability_locations",
+                    "account prefixes for liability accounts (use [] if you have none)",
+                ),
+                (
+                    "expense_locations",
+                    "account prefixes for expense accounts (e.g. [\"expenses:\", \"liabilities:\"])",
+                ),
+                (
+                    "payment_sources",
+                    "map of account prefixes to journal files for routing (see config.example.yaml)",
+                ),
+                ("server", "server section with bind_address and port"),
+            ] {
+                if !keys.contains(&key) {
+                    missing.push(format!("{} -- {}", key, explanation));
+                }
+            }
+            if let Some(serde_yaml::Value::Mapping(server)) = mapping
+                .iter()
+                .find(|(k, _)| k.as_str() == Some("server"))
+                .map(|(_, v)| v)
+            {
+                let server_keys: Vec<&str> = server
+                    .iter()
+                    .filter_map(|(k, _)| k.as_str())
+                    .collect();
+                for (key, explanation) in [
+                    ("bind_address", "address to listen on (e.g. 127.0.0.1)"),
+                    ("port", "port to listen on (e.g. 8080)"),
+                ] {
+                    if !server_keys.contains(&key) {
+                        missing.push(format!("server.{} -- {}", key, explanation));
+                    }
+                }
+            }
+            if !missing.is_empty() {
+                return Err(ConfigError::MissingKeys(missing.join("; ")));
+            }
+        }
+
         let config: Self = serde_yaml::from_str(&content)
             .map_err(|e| ConfigError::ParseFailed(path.to_string(), e))?;
 
@@ -331,6 +406,8 @@ pub enum ConfigError {
     ParseFailed(String, serde_yaml::Error),
     #[error("transfer_journal must be defined in config.yaml")]
     TransferJournalMissing,
+    #[error("missing required config keys: {0}. Add them to config.yaml (see config.example.yaml for a complete example)")]
+    MissingKeys(String),
     #[error("Failed to create transfer journal file '{0}': {1}")]
     TransferJournalCreateFailed(String, std::io::Error),
 }
@@ -389,5 +466,103 @@ mod tests {
         let entries = config.get_all_budget_entries();
         assert!(entries.len() > 0);  
     }
-}
 
+    fn write_temp_config(content: &str) -> tempfile::NamedTempFile {
+        use std::io::Write;
+        let mut file = tempfile::NamedTempFile::new().expect("temp file");
+        file.write_all(content.as_bytes())
+            .expect("write temp config");
+        file.flush().expect("flush temp config");
+        file
+    }
+
+    const VALID_CONFIG: &str = r#"
+nas_path: "./demo_journals"
+top_journal: "current.journal"
+current_year: 2026
+budget_locations:
+  - "assets:Bank:Checking:"
+liability_locations: []
+expense_locations:
+  - "expenses:"
+transfer_journal: "2026/transfers.journal"
+payment_sources:
+  "assets:Bank:Checking:":
+    label: "Checking"
+    journal: "2026/demo.journal"
+server:
+  bind_address: "127.0.0.1"
+  port: 8080
+"#;
+
+    #[test]
+    fn test_missing_required_keys_reports_all_with_explanations() {
+        let content = r#"
+nas_path: "./demo_journals"
+top_journal: "current.journal"
+"#;
+        let file = write_temp_config(content);
+        match Config::load(file.path().to_str().unwrap()) {
+            Err(ConfigError::MissingKeys(msg)) => {
+                for key in [
+                    "current_year",
+                    "budget_locations",
+                    "liability_locations",
+                    "expense_locations",
+                    "payment_sources",
+                    "server",
+                ] {
+                    assert!(msg.contains(key), "message should name {}: {}", key, msg);
+                }
+                assert!(msg.contains("config.example.yaml"));
+            }
+            other => panic!("expected MissingKeys, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_missing_server_keys_reported_nested() {
+        let content = VALID_CONFIG.replace(
+            "server:\n  bind_address: \"127.0.0.1\"\n  port: 8080\n",
+            "server: {}\n",
+        );
+        let file = write_temp_config(&content);
+        match Config::load(file.path().to_str().unwrap()) {
+            Err(ConfigError::MissingKeys(msg)) => {
+                assert!(msg.contains("server.bind_address"), "{}", msg);
+                assert!(msg.contains("server.port"), "{}", msg);
+            }
+            other => panic!("expected MissingKeys, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_null_liability_locations_still_loads() {
+        // Guards the real-world case: a bare `liability_locations:` key
+        // with no entries must keep loading (presence, not nullness).
+        let content = VALID_CONFIG.replace("liability_locations: []", "liability_locations:");
+        let file = write_temp_config(&content);
+        let config = Config::load(file.path().to_str().unwrap())
+            .expect("null liability_locations must load");
+        assert!(config.liability_locations.is_empty());
+    }
+
+    #[test]
+    fn test_valid_config_loads() {
+        let file = write_temp_config(VALID_CONFIG);
+        let config = Config::load(file.path().to_str().unwrap())
+            .expect("valid config must load");
+        assert_eq!(config.nas_path, "./demo_journals");
+        assert_eq!(config.current_year, 2026);
+        assert_eq!(config.server.port, 8080);
+    }
+
+    #[test]
+    fn test_malformed_yaml_is_parse_error_not_missing_keys() {
+        let file = write_temp_config("nas_path: [unclosed\n");
+        match Config::load(file.path().to_str().unwrap()) {
+            Err(ConfigError::ParseFailed(_, _)) => {}
+            other => panic!("expected ParseFailed, got {:?}", other),
+        }
+    }
+}
