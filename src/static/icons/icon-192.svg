@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00ff88;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00cc66;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="96" cy="96" r="90" fill="#0a0a0a"/>
+  
+  <!-- Stylized ledger book -->
+  <g transform="translate(48, 48)">
+    <!-- Book cover -->
+    <rect width="96" height="96" rx="8" fill="url(#grad1)"/>
+    
+    <!-- Ledger lines -->
+    <rect x="10" y="18" width="76" height="4" fill="white" opacity="0.7"/>
+    <rect x="10" y="30" width="76" height="4" fill="white" opacity="0.7"/>
+    <rect x="10" y="42" width="76" height="4" fill="white" opacity="0.7"/>
+    <rect x="10" y="54" width="76" height="4" fill="white" opacity="0.7"/>
+    <rect x="10" y="66" width="76" height="4" fill="white" opacity="0.7"/>
+    
+    <!-- Right margin -->
+    <line x1="62" y1="14" x2="62" y2="74" stroke="white" stroke-width="3" opacity="0.5"/>
+    
+    <!-- Total line -->
+    <rect x="10" y="78" width="70" height="2" fill="#66ffaa"/>
+  </g>
+  
+  <!-- Decorative dots -->
+  <circle cx="144" cy="48" r="8" fill="#00ff88" opacity="0.4"/>
+  <circle cx="160" cy="64" r="5" fill="#00cc66" opacity="0.3"/>
+</svg>

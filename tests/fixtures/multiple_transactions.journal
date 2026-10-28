@@ -1,0 +1,12 @@
+; Test journal with multiple transactions
+2026-09-10 * Whole Foods
+  Expenses:Groceries  $45.20
+  Assets:Bank    -$45.20
+
+2026-09-11 * Gas Station
+  Expenses:Transportation  $35.00
+  Assets:Bank    -$35.00
+
+2026-09-12 * Starbucks
+  Expenses:Coffee  $5.50
+  Assets:Bank    -$5.50

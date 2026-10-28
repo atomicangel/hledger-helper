@@ -1,0 +1,4 @@
+; Invalid transaction - unbalanced amounts
+2026-09-12 * Test
+  Expenses:Test  $100.00
+  Assets:Bank    -$90.00

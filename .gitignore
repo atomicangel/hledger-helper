@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Node/JavaScript
+node_modules/
+*.log
+.npm/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Rust artifacts
+*.rs.bk
+
+
+# Added by cargo
+
+/target

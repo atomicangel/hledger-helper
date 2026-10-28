@@ -1,0 +1,3 @@
+# Demo journal entry point. All demo data is fictional.
+include 2026/demo.journal
+include 2026/transfers.journal

@@ -1,0 +1,95 @@
+# hledger-helper example configuration.
+# Copy to config.yaml and adjust the accounts to match your own journals.
+# See README.md for what each key does. All accounts and payees here are
+# fictional and exist only to make the included demo journals work.
+
+nas_path: "./demo_journals"
+top_journal: "current.journal"
+current_year: 2026
+
+server:
+  bind_address: "0.0.0.0"
+  port: 8080
+
+budget_locations:
+  - "assets:Bank:Checking:"
+  - "assets:Bank:Savings:"
+  - "assets:Cash:"
+
+liability_locations:
+  - "liabilities:CC:"
+
+# Charge-now/pay-later sources: a Quick Entry split whose source matches one
+# of these prefixes shows the auto-cover UI. Paydown-only debts (student
+# loans, mortgages, tax debts) are not spending sources and must not be
+# listed here. If this key is absent, there is no cover UI.
+credit_locations:
+  - "liabilities:CC:"
+
+expense_locations:
+  - "expenses:"
+
+safe_to_spend_account: "assets:Bank:Checking:Budget:Unallocated"
+safe_to_spend_header: "Checking"
+
+# Required: the server refuses to start if this is missing or empty.
+# A defined file is created at startup if it does not exist yet.
+transfer_journal: "2026/transfers.journal"
+
+# Journal routing for source accounts. Keys are account prefixes; the
+# longest match wins, and anything unmatched falls back to top_journal.
+# The demo routes everything to the one demo journal for simplicity; a real
+# setup usually routes each source to its own year file.
+payment_sources:
+  "assets:Bank:Checking":
+    label: "Checking"
+    journal: "2026/demo.journal"
+  "assets:Bank:Savings":
+    label: "Savings"
+    journal: "2026/demo.journal"
+  "assets:Cash":
+    label: "Cash"
+    journal: "2026/demo.journal"
+  "liabilities:CC:Example Card":
+    label: "Example Card"
+    journal: "2026/demo.journal"
+
+# Envelope and liability cards on the Budget tab. amount is the monthly
+# limit (negative for a liability credit line). Unallocated is intentionally
+# not a card: it is the Safe-to-Spend pool, not a spending envelope.
+budget_entries:
+  - account: "assets:Bank:Checking:Budget:Example Card"
+    label: "Example Card"
+    amount: 500
+    header: "Checking"
+    type: "budget"
+  - account: "assets:Bank:Checking:Budget:Fuel"
+    label: "Fuel"
+    amount: 200
+    header: "Checking"
+    type: "budget"
+  - account: "assets:Bank:Checking:Budget:Groceries"
+    label: "Groceries"
+    amount: 400
+    header: "Checking"
+    type: "budget"
+  - account: "assets:Bank:Checking:Budget:Rent"
+    label: "Rent"
+    amount: 1200
+    header: "Checking"
+    type: "budget"
+  - account: "assets:Bank:Checking:Budget:Utilities"
+    label: "Utilities"
+    amount: 250
+    header: "Checking"
+    type: "budget"
+  - account: "liabilities:CC:Example Card"
+    label: "Example Card"
+    amount: -2000
+    header: "Liabilities"
+    type: "liability"
+  - account: "assets:Bank:Savings:Budget:Emergency"
+    label: "Emergency"
+    amount: 1000
+    header: "Savings"
+    type: "budget"

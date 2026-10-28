@@ -1,0 +1,4 @@
+; Test journal with transfer transaction
+2026-09-12 * Chase Credit Card Payment
+  Assets:Checking  -$500.00
+  Liabilities:ChaseCredit  $500.00

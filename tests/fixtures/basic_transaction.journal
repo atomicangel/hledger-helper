@@ -1,0 +1,4 @@
+; Test journal with basic single-line transaction
+2026-09-12 * Starbucks
+  Expenses:Coffee  $5.50
+  Assets:Bank    -$5.50

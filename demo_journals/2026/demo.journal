@@ -1,0 +1,38 @@
+; Demo journal. All payees, accounts, and amounts are fictional.
+; Envelopes are funded by the 2026-10-01 allocation; purchases below use
+; the Quick Entry shape (expense destination, funding source).
+
+2026-10-01 * Monthly Budget Funding
+  assets:Bank:Checking:Budget:Groceries  $400.00
+  assets:Bank:Checking:Budget:Utilities  $250.00
+  assets:Bank:Checking:Budget:Fuel  $200.00
+  assets:Bank:Checking:Budget:Rent  $1200.00
+  assets:Bank:Checking:Budget:Example Card  $500.00
+  assets:Bank:Checking:Budget:Unallocated  $1500.00
+  assets:Bank:Savings:Budget:Emergency  $100.00
+  assets:Bank:Checking  -$4050.00
+  assets:Bank:Savings  -$100.00
+
+2026-10-03 * Corner Grocery
+  expenses:Groceries  $45.20
+  assets:Bank:Checking  -$45.20
+
+2026-10-05 * City Electric
+  expenses:Utilities  $132.00
+  assets:Bank:Checking  -$132.00
+
+2026-10-08 * Main Street Fuel
+  expenses:Fuel  $38.50
+  liabilities:CC:Example Card  -$38.50
+
+2026-10-10 * Corner Grocery
+  expenses:Groceries  $22.75
+  liabilities:CC:Example Card  -$22.75
+
+2026-10-12 * Maple Street Rentals
+  expenses:Rent  $1200.00
+  assets:Bank:Checking  -$1200.00
+
+2026-10-15 * Corner Grocery
+  expenses:Groceries  $12.00
+  assets:Cash:Wallet  -$12.00

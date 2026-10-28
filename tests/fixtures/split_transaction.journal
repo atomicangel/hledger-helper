@@ -1,0 +1,5 @@
+; Test journal with split transaction
+2026-09-12 * Costco
+  Expenses:Groceries  $85.00
+  Expenses:Household  $57.18
+  Liabilities:AppleCard  -$142.18
