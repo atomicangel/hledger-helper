@@ -132,7 +132,7 @@
       items.sort((a, b) => a.display_name.localeCompare(b.display_name));
       
       const optgroup = document.createElement('optgroup');
-      optgroup.label = header;  // Label text shown in dropdown
+      optgroup.label = header.charAt(0).toUpperCase() + header.slice(1);  // Capitalize display header (e.g., "expenses" -> "Expenses")
       
       items.forEach(src => {
         const option = document.createElement('option');
