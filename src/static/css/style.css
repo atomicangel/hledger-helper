@@ -546,25 +546,6 @@ body::before {
   box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.15);
 }
 
-.split-row .remove-split {
-  background: var(--danger);
-  color: white;
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.split-row .remove-split:hover {
-  transform: scale(1.1);
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
-}
-
 /* Cover row must not force the split grid wider than the card:
    the row can shrink below its content, and its selects shrink
    instead of pushing the row out (mobile overflow fix). */
@@ -794,10 +775,6 @@ body::before {
     gap: var(--space-sm);
   }
   
-  .split-row .remove-split {
-    justify-self: end;
-  }
-
   /* Cover row on small screens: name underneath the dropdown. */
   .split-row .cover-row {
     flex-wrap: wrap;
