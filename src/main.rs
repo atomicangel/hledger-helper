@@ -6,6 +6,7 @@ mod hledger;
 mod file_handler;
 mod static_handler;
 mod api;
+mod sanitize;
 
 use config::Config;
 use static_handler::create_router as create_app_router;

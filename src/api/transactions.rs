@@ -5,6 +5,7 @@ use crate::file_handler::FileHandlerError;
 
 use crate::{hledger::Hledger, file_handler::FileHandler};
 use crate::config::Config;
+use crate::sanitize::sanitize_journal_text;
 
 /// Response for /api/transactions (validation result)
 #[derive(Debug, Serialize)]
@@ -178,8 +179,12 @@ fn format_transaction(transaction: &str) -> String {
     
     for line in transaction.lines() {
         if first_line {
-            // Keep the first line (date and payee) as-is
-            lines.push(line.to_string());
+            // Sanitize the first line (date and payee) to ASCII-only so the
+            // journal parses under any system locale. The payee is free text
+            // (phone autocorrect can insert curly quotes); date and status
+            // are ASCII and pass through unchanged. Posting lines below are
+            // left exact: account names are structured identifiers.
+            lines.push(sanitize_journal_text(line));
             first_line = false;
         } else if line.starts_with(' ') || line.starts_with('\t') {
             // Format posting lines
