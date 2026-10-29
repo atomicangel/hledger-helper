@@ -97,41 +97,6 @@ impl Hledger {
         }
     }
 
-    /// Get list of payees
-    pub fn payees(&self) -> HledgerResult<Vec<String>> {
-        let output = self.run(&["payees"])?;
-        Ok(output.lines().map(|s| s.to_string()).collect())
-    }
-
-    /// Get balance for a specific account
-    pub fn balance(&self, account: &str, period: Option<&str>, journal_path: Option<&str>) -> HledgerResult<String> {
-        let mut args = vec!["balance", account];
-        if let Some(p) = period {
-            args.push("-p");
-            args.push(p);
-        }
-        let mut cmd = Command::new(&self.binary);
-        cmd.args(&args);
-        if let Some(jp) = journal_path {
-            cmd.env("LEDGER_FILE", jp);
-        }
-        let output = cmd.output()
-            .map_err(|e| HledgerError::CommandFailed {
-                cmd: format!("{} {}", self.binary, args.join(" ")),
-                source: e,
-            })?;
-        if output.status.success() {
-            Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
-        } else {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            Err(HledgerError::NonZeroExitWithStderr {
-                cmd: format!("{} {}", self.binary, args.join(" ")),
-                status: output.status.code().unwrap_or(-1),
-                stderr: stderr.to_string(),
-            })
-        }
-    }
-
     /// Get balances for multiple accounts in a SINGLE hledger invocation.
     /// Uses --flat for machine-parseable one-line-per-account output.
     /// Non-existent accounts are simply omitted from the output (no error).

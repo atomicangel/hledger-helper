@@ -1,10 +1,9 @@
 use hledger_helper::hledger::{Hledger, HledgerError};
 use hledger_helper::file_handler::{FileHandler, FileHandlerError};
-use hledger_helper::config::{Config, ServerConfig};
+use hledger_helper::config::Config;
 use hledger_helper::api::transactions::{determine_journal_path, extract_accounts_from_transaction, find_journal_route};
 use tempfile::TempDir;
 use std::fs;
-use std::io::Write;
 
 #[test]
 fn test_hledger_error_display() {
@@ -15,9 +14,9 @@ fn test_hledger_error_display() {
 
 #[test]
 fn test_hledger_with_custom_binary() {
-    let hledger = Hledger::with_binary("/usr/bin/hledger");
+    let _hledger = Hledger::with_binary("/usr/bin/hledger");
     // Verify default creation works
-    let default_hledger = Hledger::new();
+    let _default_hledger = Hledger::new();
     assert!(true); // Just verify construction doesn't panic
 }
 
@@ -39,36 +38,6 @@ fn test_config_validation_missing_fields() {
     
     let result = Config::load(config_path.to_str().unwrap());
     assert!(result.is_err());
-}
-
-#[test]
-fn test_journal_path_generation() {
-    let config_yaml = r#"
-nas_path: "/mnt/nas/finances"
-top_journal: "main.journal"
-current_year: 2026
-llm_endpoint: null
-budget_locations:
-  - "assets:Bank:Checking:Budget:"
-liability_locations: []
-expense_locations: []
-transfer_journal: "2026/transfers.journal"
-payment_sources:
-  assets:bank:
-    label: "Bank"
-    journal: "2026/example-card.journal"
-server:
-  bind_address: "0.0.0.0"
-  port: 8080
-"#;
-    
-    let temp_dir = TempDir::new().unwrap();
-    let config_path = temp_dir.path().join("test.yaml");
-    fs::write(&config_path, config_yaml).unwrap();
-    
-    let config = Config::load(config_path.to_str().unwrap()).unwrap();
-    let path = config.journal_path("test.journal");
-    assert_eq!(path, "/mnt/nas/finances/2026/test.journal");
 }
 
 #[test]
@@ -105,38 +74,6 @@ fn test_file_handler_locking() {
     // Test locking mechanism works
     let handler = FileHandler::open(&journal_path).unwrap();
     assert!(handler.path().contains("locked.journal"));
-}
-
-#[test]
-fn test_transaction_routing_logic() {
-    let config_yaml = r#"
-nas_path: "/mnt/nas/finances"
-top_journal: "main.journal"
-current_year: 2026
-llm_endpoint: null
-budget_locations:
-  - "assets:Bank:Checking:Budget:"
-liability_locations: []
-expense_locations: []
-transfer_journal: "2026/transfers.journal"
-payment_sources:
-  assets:bank:
-    label: "Bank"
-    journal: "2026/example-card.journal"
-server:
-  bind_address: "0.0.0.0"
-  port: 8080
-"#;
-    
-    let temp_dir = TempDir::new().unwrap();
-    let config_path = temp_dir.path().join("test.yaml");
-    fs::write(&config_path, config_yaml).unwrap();
-    
-    let config = Config::load(config_path.to_str().unwrap()).unwrap();
-    
-    // Test journal path (file parameter should be relative to year dir)
-    let default_path = config.journal_path("example-card.journal");
-    assert_eq!(default_path, "/mnt/nas/finances/2026/example-card.journal");
 }
 
 #[test]

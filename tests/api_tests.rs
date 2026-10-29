@@ -1,5 +1,3 @@
-use tempfile::TempDir;
-
 #[test]
 fn test_config_loads() {
     let config = hledger_helper::config::Config::load("config.example.yaml")

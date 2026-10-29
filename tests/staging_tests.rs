@@ -1,7 +1,6 @@
 //! Staging guard tests for atomic journal writes (FIXES.md D2)
 
-use hledger_helper::journal_write::{append_validated, JournalWriteError};
-use std::fs;
+use hledger_helper::journal_write::append_validated;
 
 #[test]  
 fn append_validated_succeeds() {  

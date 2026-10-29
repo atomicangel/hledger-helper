@@ -1,7 +1,6 @@
 //! C62 column alignment tests for journal output (FIXES.md D1)
 
 use hledger_helper::journal_write::{format_transaction, COLUMN_START};
-use std::fs;
 
 /// Test that COLUMN_START constant is set to 62 per FIXES.md spec.
 #[test]  

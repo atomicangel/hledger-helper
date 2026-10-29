@@ -73,7 +73,7 @@ pub struct BudgetEntry {
     pub amount: f64,
     /// Grouping header ("Checking", "Savings", etc.)
     pub header: String,
-    /// Entry type: "budget" or "liability"  
+    /// Entry type: "budget" or "liabilities"  
     #[serde(alias = "type")]
     #[serde(default = "default_type")]
     pub type_: String,
@@ -222,22 +222,6 @@ impl Config {
                 .map_err(|e| ConfigError::TransferJournalCreateFailed(journal_path.clone(), e))?;
         }
         Ok(())
-    }
-
-    /// Get all budget entries from config (array-only migration complete).
-    pub fn get_all_budget_entries(&self) -> Vec<BudgetEntry> {
-        let mut entries = self.budget_entries.clone();
-        // Sort by header then label for consistent ordering
-        entries.sort_by(|a, b| a.header.cmp(&b.header).then_with(|| a.label.cmp(&b.label)));  
-        entries
-    }
-
-
-
-    /// Get the full path to a journal file
-    #[allow(dead_code)] // used by integration tests via the lib crate
-    pub fn journal_path(&self, file: &str) -> String {
-        format!("{}/{}/{}", self.nas_path, self.current_year, file)
     }
 
     /// Query hledger for budget accounts and extract categories
@@ -424,38 +408,6 @@ mod tests {
         let config = Config::load("config.example.yaml").expect("Failed to load config");
         // Verify array-only budget entries are loaded (migration complete)
         assert!(!config.budget_entries.is_empty());  
-    }
-
-    #[test]
-    fn test_get_all_budget_entries_merges() {
-        let config = Config::load("config.example.yaml").expect("Failed to load config");
-        let entries = config.get_all_budget_entries();
-        assert!(!entries.is_empty());
-        for entry in &entries {
-            assert!(!entry.account.is_empty());
-            assert!(!entry.label.is_empty());
-            assert!(!entry.header.is_empty());
-            // Allows zero/negative amounts for unallocated or liability entries
-        }
-    }
-
-    #[test]
-    fn test_entries_sorted_by_header_then_label() {
-        let config = Config::load("config.example.yaml").expect("Failed to load config");
-        let entries = config.get_all_budget_entries();
-        for i in 0..entries.len().saturating_sub(1) {
-            assert!(entries[i].header <= entries[i + 1].header);  
-            if entries[i].header == entries[i + 1].header {
-                assert!(entries[i].label <= entries[i + 1].label);
-            }
-        }
-    }
-
-    #[test]
-    fn test_budget_entry_struct_accessible() {
-        let config = Config::load("config.example.yaml").expect("Failed to load config");
-        let entries = config.get_all_budget_entries();
-        assert!(entries.len() > 0);  
     }
 
     fn write_temp_config(content: &str) -> tempfile::NamedTempFile {

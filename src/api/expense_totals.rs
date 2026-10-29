@@ -20,7 +20,7 @@ pub struct ExpenseTotal {
     /// Remaining balance = budget_limit - spent_total
     pub remaining: f64,           
     /// Entry kind for progress bar color styling ("budget" or "liabilities")
-    /// Canonical value is plural "liabilities", accepting singular input for compatibility
+    /// Only the plural "liabilities" renders as a liability card; any other value renders as a budget card
     pub kind: String,             
 }
 
@@ -41,21 +41,6 @@ fn parse_balance(s: &str) -> f64 {
             cleaned.parse::<f64>().unwrap_or(0.0)
         })
         .unwrap_or(0.0)
-}
-
-/// Query hledger for the SIGNED account balance by exact account path.
-/// Negative = underwater envelope (overspent) or owed liability.
-pub(crate) fn query_hledger_signed_balance(journal_path: &str, account: &str) -> f64 {
-    match crate::hledger::Hledger::new().balance(account, None, Some(journal_path)) {
-        Ok(balance_str) => parse_balance(&balance_str),
-        Err(_) => 0.0,
-    }
-}
-
-/// Query hledger for individual account balance by exact account path (Fix 3: direct query not prefix aggregation)
-fn query_hledger_balance(journal_path: &str, account: &str) -> f64 {
-    // For liabilities, use abs() so spent_total is non-negative (per struct doc)
-    query_hledger_signed_balance(journal_path, account).abs()
 }
 
 /// Batch query hledger for MULTIPLE account balances in a SINGLE invocation.

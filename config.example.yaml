@@ -100,8 +100,8 @@ budget_entries:
   - account: "liabilities:CC:Example Card"
     label: "Example Card"
     amount: -2000
-    header: "Liabilities"
-    type: "liability"
+    header: "Credit Cards"
+    type: "liabilities"
   - account: "assets:Bank:Savings:Budget:Emergency"
     label: "Emergency"
     amount: 1000

@@ -2,7 +2,6 @@
 
 use hledger_helper::journal_write::{append_validated, format_transaction};
 use hledger_helper::sanitize::sanitize_journal_text;
-use std::fs;
 
 /// Test character sanitization (A1-A3) with various input edge cases.
 #[test]
@@ -43,7 +42,7 @@ fn format_transaction_preserves_ledger_entry() {
 fn full_workflow_integration() {  
     let dirty_content = "Spent $50 at McDonald's…";  
     let sanitized = sanitize_journal_text(dirty_content);  
-    let formatted = format_transaction(&sanitized);
+    let _formatted = format_transaction(&sanitized);
     
     assert!(sanitized.to_string().contains("McDonald"));
 }

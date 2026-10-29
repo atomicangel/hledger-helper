@@ -9,27 +9,20 @@ pub fn sanitize_journal_text(input: &str) -> String {
         if !c.is_ascii() && c.is_control() { continue; }  // A2: discard control chars  
         
         match c {
-            '‘' | '\u{2018}' => result.push('`'),   // left single quote to backtick
-            '’' | '\u{2019}' => result.push('\''),  // right single quote  
-            '‚' | '\u{201a}' => result.push('`'),   // low back tick
-            '‛' | '\u{201b}' => result.push('\''),  // low single quote to apostrophe
-            '‹' | '\u{2039}' => {}                  // guillemet left handled in A3  
-            '›' | '\u{203a}' => {}                  // guillemet right handled in A3
-            '…' | '\u{2026}' => result.push('.'),   // ellipsis to dot
-            '–' | '\u{2013}' => result.push('-'),   // en dash
-            '—' | '\u{2014}' => result.push_str("- "),  // em dash
+            '‘' => result.push('`'),   // left single quote to backtick
+            '’' => result.push('\''),  // right single quote  
+            '‚' => result.push('`'),   // low back tick
+            '‛' => result.push('\''),  // low single quote to apostrophe
+            '‹' => {}                  // guillemet left handled in A3  
+            '›' => {}                  // guillemet right handled in A3
+            '…' => result.push('.'),   // ellipsis to dot
+            '–' => result.push('-'),   // en dash
+            '—' => result.push_str("- "),  // em dash
             _ if c.is_ascii() => result.push(c),    
             _ => {}         // discard other non-ASCII (A2)
         }
     }
     result
-}
-
-/// Validate that text contains only safe characters for hledger journal files.  
-pub fn is_journal_safe(text: &str) -> bool {  
-    !text.contains("€") && 
-    !text.contains("!") && 
-    true  // Guillemets are handled in sanitize_journal_text ()  
 }
 
 #[cfg(test)]  

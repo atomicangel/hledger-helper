@@ -96,7 +96,7 @@ Keys:
 - `server` — `bind_address` and `port` (the example binds `0.0.0.0:8080`).
 - `budget_entries` — the envelope/liability cards on the Budget tab:
   `account`, `label`, `amount` (monthly limit; negative for a liability
-  credit line), `header` (group), and `type` (`budget` or `liability`).
+  credit line), `header` (group), and `type` (`budget` or `liabilities`). Only the plural `liabilities` renders as a liability card; singular `liability` falls through to budget rendering.
 
 ## Journal layout
 
