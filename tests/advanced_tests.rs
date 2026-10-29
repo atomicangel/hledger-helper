@@ -50,7 +50,6 @@ current_year: 2026
 llm_endpoint: null
 budget_locations:
   - "assets:Bank:Checking:Budget:"
-budget_limits: {}
 liability_locations: []
 expense_locations: []
 transfer_journal: "2026/transfers.journal"
@@ -117,7 +116,6 @@ current_year: 2026
 llm_endpoint: null
 budget_locations:
   - "assets:Bank:Checking:Budget:"
-budget_limits: {}
 liability_locations: []
 expense_locations: []
 transfer_journal: "2026/transfers.journal"
@@ -151,7 +149,6 @@ llm_endpoint: null
 budget_locations:
   - "assets:Bank:Checking:Budget:"
   - "Groceries"
-budget_limits: {}
 liability_locations: []
 expense_locations: []
 transfer_journal: "2026/transfers.journal"
@@ -249,7 +246,6 @@ current_year: 2026
 llm_endpoint: null
 budget_locations:
   - "assets:Bank:Checking:Budget:"
-budget_limits: {}
 liability_locations: []
 expense_locations: []
 transfer_journal: "2026/transfers.journal"
@@ -280,7 +276,6 @@ current_year: 2026
 llm_endpoint: null
 budget_locations:
   - "assets:Bank:Checking:Budget:"
-budget_limits: {}
 liability_locations: []
 expense_locations: []
 transfer_journal: "2026/transfers.journal"
@@ -319,7 +314,6 @@ current_year: 2026
 llm_endpoint: null
 budget_locations:
   - "assets:Bank:Checking:Budget:"
-budget_limits: {}
 liability_locations: []
 expense_locations: []
 transfer_journal: "2026/transfers.journal"
@@ -350,7 +344,6 @@ current_year: 2026
 llm_endpoint: null
 budget_locations:
   - "assets:Bank:Checking:Budget:"
-budget_limits: {}
 liability_locations: []
 expense_locations: []
 transfer_journal: "2026/transfers.journal"
@@ -389,7 +382,6 @@ current_year: 2026
 llm_endpoint: null
 budget_locations:
   - "assets:Bank:Checking:Budget:"
-budget_limits: {}
 liability_locations: []
 expense_locations: []
 transfer_journal: "2026/transfers.journal"
@@ -429,7 +421,6 @@ current_year: 2026
 llm_endpoint: null
 budget_locations:
   - "assets:Bank:Checking:Budget:"
-budget_limits: {}
 liability_locations: []
 expense_locations: []
 transfer_journal: "2026/transfers.journal"

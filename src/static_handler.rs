@@ -16,12 +16,8 @@ pub fn create_router(config: Arc<Config>) -> Router {
         .route("/manifest.json", get(manifest_handler))
         .route("/sw.js", get(service_worker_handler))
         .route("/config.json", get(config_handler))
-        .route("/api/accounts", get(api::get_accounts))
-        .route("/api/payees", get(api::get_payees))
-        .route("/api/payment-sources", get(api::get_payment_sources))
         .route("/api/categories", get(api::get_budget_categories))
         .route("/api/expenses", get(api::get_expenses))
-        .route("/api/transfer-accounts", get(api::get_transfer_accounts))
         .route("/api/expenses-totals", get(api::get_expense_totals))
         .route("/api/safe-to-spend", get(api::get_safe_to_spend))
         .route("/api/transactions", post(api::create_transaction))
@@ -52,6 +48,7 @@ async fn config_handler(axum::extract::State(config): axum::extract::State<Arc<C
         "current_year": config.current_year,
         "budget_locations": config.budget_locations,
         "liability_locations": config.liability_locations,
+        "expense_locations": config.expense_locations,
         "credit_locations": config.credit_locations,
         "safe_to_spend_account": config.safe_to_spend_account,
         "transfer_journal": config.transfer_journal,

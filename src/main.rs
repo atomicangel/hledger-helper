@@ -28,13 +28,6 @@ fn parse_config_path(args: &[String]) -> String {
         .expect("Failed to get current directory")
 }
 
-/// Create router for integration tests (re-export)
-#[cfg(test)]
-#[allow(dead_code)]
-pub fn create_router(config: Arc<Config>) -> axum::Router {
-    create_app_router(config)
-}
-
 #[tokio::main]
 async fn main() {
     // Initialize tracing

@@ -24,15 +24,12 @@ pub struct Config {
     pub credit_locations: Vec<String>,
     /// Expense account locations (prefixes for expense accounts)
     pub expense_locations: Vec<String>,
-    /// Account whose balance is shown as "safe to spend" on Budget tab for Phase 1 /api/safe-to-spend endpoint
+    /// Account whose balance is shown as "safe to spend" on Budget tab
     #[serde(default = "default_safe_spend_account")]  
     pub safe_to_spend_account: String,
     /// Header group whose underwater (negative-balance) envelopes count against Safe-to-Spend
     #[serde(default = "default_safe_spend_header")]
     pub safe_to_spend_header: String,
-    /// Static budget limits per account path (legacy flat-map YAML format)
-    #[serde(default)]
-    pub budget_limits: std::collections::HashMap<String, f64>,
     /// Budget entries from array config section
     #[serde(default = "Vec::new")]  
     pub budget_entries: Vec<BudgetEntry>,
@@ -86,7 +83,7 @@ fn default_type() -> String {
     "budget".to_string()
 }
 
-/// Budget category with full account path and display name (legacy Category)
+/// Budget category with full account path and display name
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Category {
     pub full_path: String,
@@ -241,12 +238,6 @@ impl Config {
     #[allow(dead_code)] // used by integration tests via the lib crate
     pub fn journal_path(&self, file: &str) -> String {
         format!("{}/{}/{}", self.nas_path, self.current_year, file)
-    }
-
-    /// Get payment sources as a vector for API responses
-    #[allow(dead_code)] // used by integration tests via the lib crate
-    pub fn get_payment_sources(&self) -> Vec<PaymentSource> {
-        self.payment_sources.values().cloned().collect()
     }
 
     /// Query hledger for budget accounts and extract categories

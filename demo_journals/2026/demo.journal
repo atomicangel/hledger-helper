@@ -2,6 +2,16 @@
 ; Envelopes are funded by the 2026-10-01 allocation; purchases below use
 ; the Quick Entry shape (expense destination, funding source).
 
+; Opening balances so the demo reads sane out of the box. Without
+; these, the account headers net negative/zero: the demo funds envelopes
+; and spends without ever depositing anything.
+
+2026-09-30 * Opening Balances
+  assets:Bank:Checking  $6000.00
+  assets:Bank:Savings  $1000.00
+  assets:Cash:Wallet  $50.00
+  equity:Opening Balances  -$7050.00
+
 2026-10-01 * Monthly Budget Funding
   assets:Bank:Checking:Budget:Groceries  $400.00
   assets:Bank:Checking:Budget:Utilities  $250.00

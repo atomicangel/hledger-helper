@@ -15,7 +15,6 @@
 # OPTIONAL sections (safe to omit): credit_locations (omit = no
 # auto-cover UI), safe_to_spend_account, safe_to_spend_header
 # (default "Checking"), and budget_entries (omit = no budget cards).
-# budget_limits is a legacy key, also optional, and not shown here.
 
 nas_path: "./demo_journals"
 top_journal: "current.journal"
@@ -40,6 +39,7 @@ liability_locations:
 credit_locations:
   - "liabilities:CC:"
 
+# Account prefixes treated as expense categories (dropdown grouping + typing).
 expense_locations:
   - "expenses:"
 

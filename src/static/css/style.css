@@ -361,7 +361,7 @@ body::before {
   
   /* Desktop split row: wider category column */
   .split-row {
-    grid-template-columns: 1fr auto 1.5fr auto;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.5fr) auto;
   }
   
   .split-row input,
@@ -491,7 +491,7 @@ body::before {
 
 .split-row {
   display: grid;
-  grid-template-columns: 1fr auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
   gap: var(--space-sm);
   margin-bottom: var(--space-md);
   align-items: center;
@@ -563,6 +563,24 @@ body::before {
 .split-row .remove-split:hover {
   transform: scale(1.1);
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+/* Cover row must not force the split grid wider than the card:
+   the row can shrink below its content, and its selects shrink
+   instead of pushing the row out (mobile overflow fix). */
+.split-row .cover-row {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.split-row .cover-row select {
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+/* Arrow before the cover-to name. */
+.split-row .cover-to-text::before {
+  content: "→ ";
 }
 
 .btn-secondary {
@@ -772,12 +790,21 @@ body::before {
   }
   
   .split-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-sm);
   }
   
   .split-row .remove-split {
     justify-self: end;
+  }
+
+  /* Cover row on small screens: name underneath the dropdown. */
+  .split-row .cover-row {
+    flex-wrap: wrap;
+  }
+
+  .split-row .cover-to-text {
+    flex-basis: 100%;
   }
 }
 

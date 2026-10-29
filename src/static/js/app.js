@@ -6,14 +6,6 @@
 
   // State management
   const state = {
-    payees: [],
-    accounts: [],
-    splits: [],
-    paymentSource: 'assets:bank',
-    total: 0,
-    transferAccounts: [],
-    selectedSource: '',
-    selectedDest: '',
     budgetLocations: [],
     liabilityLocations: [],
     creditLocations: [],
@@ -25,11 +17,7 @@
   // DOM Elements
   const elements = {
     payeeInput: document.getElementById('payee'),
-    payeesList: document.getElementById('payees-list'),
     splitRows: document.getElementById('split-rows'),
-    categorySearch: document.getElementById('category-search'),
-    accountsList: document.getElementById('accounts-list'),
-    amountInput: document.getElementById('amount'),
     totalAmount: document.getElementById('total-amount'),
     submitBtn: document.getElementById('submit-transaction'),
     addSplitBtn: document.getElementById('add-split'),
@@ -44,7 +32,6 @@
   async function init() {
     await loadConfig();
     loadSources();
-    loadCategories();
     setupEventListeners();
     // Auto-create first line
     addSplitRow();
@@ -64,7 +51,7 @@
         state.creditLocations = config.credit_locations || [];
         state.safeToSpendAccount = config.safe_to_spend_account || '';
         state.transferJournal = config.transfer_journal || '';
-        state.expenseLocations = config.expense_locations || ['expenses:', 'liabilities:'];  // For expense dropdown grouping
+        state.expenseLocations = config.expense_locations || [];  // For expense dropdown grouping
       }
     } catch (e) {
       console.log('No external config found, using defaults');
@@ -171,21 +158,10 @@
     groupAccountsIntoSections(select, sources);
   }
 
-  async function loadCategories() {
-    try {
-      const response = await fetch('/api/expenses');
-      if (response.ok) {
-        const expenses = await response.json();
-        populateExpenseDropdown(expenses);
-      }
-    } catch (e) {
-      console.log('Failed to load expenses:', e);
-    }
-  }
 
   async function loadBudgets() {
     try {
-      // Phase 2: Load safe-to-spend hero data if available
+      // Load safe-to-spend hero data if available
       let safeToSpendData = null;
       try {
         const s2sResp = await fetch('/api/safe-to-spend', { cache: 'no-store' });
@@ -249,30 +225,12 @@
       groups[header].push(item);
     });
     
-    // Remove old static containers first
-    document.querySelectorAll('.budget-group-label').forEach(el => el.remove());
-    document.querySelectorAll('#budget-checking, #budget-savings').forEach(el => el.remove());
-    
-    // Create dynamic container if needed - remove old static containers first
-    const root = document.documentElement;
-    const isDarkMode = root.getAttribute('data-theme') === 'dark' || 
-                      (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-    document.querySelectorAll('.budget-group-label').forEach(el => el.remove());
-    document.querySelectorAll('#budget-checking, #budget-savings').forEach(el => el.remove());
+    // Create dynamic container if needed
     
     const containerEl = document.getElementById('budget-groups-container');
     if (!containerEl) return;
     // Clear existing cards before re-rendering (fixes refresh duplicating content)
     containerEl.innerHTML = '';
-
-    const themeWrapper = document.createElement('div');
-    themeWrapper.className = 'budget-group';
-    themeWrapper.id = 'dynamic-budget-wrapper';
-    themeWrapper.style.cssText = isDarkMode ? 'background: rgba(0,0,0,0.3);' :
-      (root.getAttribute('data-theme') === 'dark' && root.style.backgroundColor !== 'black')
-      ? 'background: rgba(0,0,0,0.2);' : '';
-    containerEl.appendChild(themeWrapper);
 
     // Render each group's budget items dynamically
     for (const header in groups) {
@@ -361,109 +319,7 @@
     return card;
   }
 
-  // Populate expense dropdown
-  function populateExpenseDropdown(expenses) {
-    const select = document.getElementById('category');
-    if (!select) return;
-    select.innerHTML = '<option value="">-- Select Expense --</option>';
-    // Filter out root expense account and empty entries
-    const filtered = expenses.filter(e => e.full_path !== 'expenses' && e.display_name.trim() !== '');
-    // Use shared helper for config-derived grouping
-    groupAccountsIntoSections(select, filtered);
-  }
 
-  // Populate category dropdown with budget categories
-  function populateCategoryDropdown(categories) {
-    const select = document.getElementById('category');
-    if (!select) return;
-    
-    select.innerHTML = '<option value="">-- Select Category --</option>';
-    
-    // Group categories dynamically based on budget_locations and liability_locations
-    const groups = {};
-    
-    // Build groups from budget_locations
-    state.budgetLocations.forEach(location => {
-      const parts = location.split(':').filter(p => p);
-      const groupName = parts.length >= 3 ? parts[2] : 'Other';
-      if (!groups[groupName]) {
-        groups[groupName] = [];
-      }
-    });
-    
-    // Also build groups from liability_locations
-    state.liabilityLocations.forEach(location => {
-      const parts = location.split(':').filter(p => p);
-      const groupName = parts.length >= 1 ? parts[1] : 'Other';
-      if (!groups[groupName]) {
-        groups[groupName] = [];
-      }
-    });
-    
-    // Assign categories to groups based on matching budget or liability location
-    categories.forEach(cat => {
-      const fullPath = typeof cat === 'object' ? cat.full_path : cat;
-      const categoryType = typeof cat === 'object' ? cat.category_type : 'expense';
-      
-      let matched = false;
-      for (const location of state.budgetLocations) {
-        const locationTrimmed = location.replace(/:$/, '');
-        if (fullPath.startsWith(locationTrimmed)) {
-          const parts = location.split(':').filter(p => p);
-          const groupName = parts.length >= 3 ? parts[2] : 'Other';
-          if (!groups[groupName]) {
-            groups[groupName] = [];
-          }
-          groups[groupName].push(cat);
-          matched = true;
-          break;
-        }
-      }
-      
-      if (!matched) {
-        for (const location of state.liabilityLocations) {
-          const locationTrimmed = location.replace(/:$/, '');
-          if (fullPath.startsWith(locationTrimmed)) {
-            const parts = location.split(':').filter(p => p);
-            const groupName = parts.length >= 1 ? parts[1] : 'Other';
-            if (!groups[groupName]) {
-              groups[groupName] = [];
-            }
-            groups[groupName].push(cat);
-            break;
-          }
-        }
-      }
-    });
-    
-    // Sort groups alphabetically
-    const sortedGroups = Object.keys(groups).sort();
-    
-    sortedGroups.forEach(groupName => {
-      if (groups[groupName].length === 0) return;
-      
-      const group = document.createElement('optgroup');
-      group.label = groupName + ' Accounts';
-      
-      // Sort categories within group by display name
-      groups[groupName].sort((a, b) => {
-        const nameA = typeof a === 'object' ? a.display_name : a.split(':').pop();
-        const nameB = typeof b === 'object' ? b.display_name : b.split(':').pop();
-        return nameA.localeCompare(nameB);
-      });
-      
-      groups[groupName].forEach(cat => {
-        const option = document.createElement('option');
-        const fullPath = typeof cat === 'object' ? cat.full_path : cat;
-        const displayName = typeof cat === 'object' ? cat.display_name : cat.split(':').pop();
-        option.value = fullPath;
-        option.textContent = displayName;
-        group.appendChild(option);
-      });
-      
-      select.appendChild(group);
-    });
-  }
 
   // Setup event listeners
   function setupEventListeners() {
@@ -686,7 +542,7 @@
     const coverToText = row.querySelector('.cover-to-text');
     const coverToSelect = row.querySelector('.cover-to');
     if (cardEnv) {
-      coverToText.textContent = '→ ' + cardEnv.display_name;
+      coverToText.textContent = cardEnv.display_name;
       coverToText.style.display = '';
       coverToSelect.style.display = 'none';
       coverWrap.dataset.coverTo = cardEnv.full_path;
@@ -859,95 +715,6 @@
     
     updateTotal();
   }
-  function populateDropdownFromCategories(selectElement, categories) {
-    if (!selectElement) return;
-    
-    selectElement.innerHTML = '<option value="">-- Select Category --</option>';
-    
-    // Group categories dynamically based on budget_locations and liability_locations
-    const groups = {};
-    
-    // Build groups from budget_locations
-    state.budgetLocations.forEach(location => {
-      const parts = location.split(':').filter(p => p);
-      const groupName = parts.length >= 3 ? parts[2] : 'Other';
-      if (!groups[groupName]) {
-        groups[groupName] = [];
-      }
-    });
-    
-    // Also build groups from liability_locations
-    state.liabilityLocations.forEach(location => {
-      const parts = location.split(':').filter(p => p);
-      const groupName = parts.length >= 1 ? parts[1] : 'Other';
-      if (!groups[groupName]) {
-        groups[groupName] = [];
-      }
-    });
-    
-    // Assign categories to groups based on matching budget or liability location
-    categories.forEach(cat => {
-      const fullPath = typeof cat === 'object' ? cat.full_path : cat;
-      
-      let matched = false;
-      for (const location of state.budgetLocations) {
-        const locationTrimmed = location.replace(/:$/, '');
-        if (fullPath.startsWith(locationTrimmed)) {
-          const parts = location.split(':').filter(p => p);
-          const groupName = parts.length >= 3 ? parts[2] : 'Other';
-          if (!groups[groupName]) {
-            groups[groupName] = [];
-          }
-          groups[groupName].push(cat);
-          matched = true;
-          break;
-        }
-      }
-      
-      if (!matched) {
-        for (const location of state.liabilityLocations) {
-          const locationTrimmed = location.replace(/:$/, '');
-          if (fullPath.startsWith(locationTrimmed)) {
-            const parts = location.split(':').filter(p => p);
-            const groupName = parts.length >= 1 ? parts[1] : 'Other';
-            if (!groups[groupName]) {
-              groups[groupName] = [];
-            }
-            groups[groupName].push(cat);
-            break;
-          }
-        }
-      }
-    });
-    
-    // Sort groups alphabetically
-    const sortedGroups = Object.keys(groups).sort();
-    
-    sortedGroups.forEach(groupName => {
-      if (groups[groupName].length === 0) return;
-      
-      const group = document.createElement('optgroup');
-      group.label = groupName + ' Accounts';
-      
-      // Sort categories within group by display name
-      groups[groupName].sort((a, b) => {
-        const nameA = typeof a === 'object' ? a.display_name : a.split(':').pop();
-        const nameB = typeof b === 'object' ? b.display_name : b.split(':').pop();
-        return nameA.localeCompare(nameB);
-      });
-      
-      groups[groupName].forEach(cat => {
-        const option = document.createElement('option');
-        const fullPath = typeof cat === 'object' ? cat.full_path : cat;
-        const displayName = typeof cat === 'object' ? cat.display_name : cat.split(':').pop();
-        option.value = fullPath;
-        option.textContent = displayName;
-        group.appendChild(option);
-      });
-      
-      selectElement.appendChild(group);
-    });
-  }
 
   // Calculate total (for split transactions)
   function updateTotal() {
@@ -960,94 +727,9 @@
     elements.totalAmount.textContent = '$' + total.toFixed(2);
   }
 
-  // Update transfer total display
-  // Search accounts (for split rows)
-  async function searchAccounts(query) {
-    if (!query || query.length < 2) return;
-    
-    try {
-      const response = await fetch(`/api/accounts`);
-      if (response.ok) {
-        const data = await response.json();
-        elements.accountsList.innerHTML = data.accounts
-          .filter(acc => acc.toLowerCase().includes(query.toLowerCase()))
-          .map(acc => `<option value="${acc}">${acc}</option>`)
-          .join('');
-      }
-    } catch (e) {
-      console.error('Failed to load accounts:', e);
-    }
-  }
 
-  // Search budget categories (for main category search)
-  // Convert budget category path to expense path for posting
-  function getCategoryFromBudgetPath(budgetPath, categoryType = 'expense') {
-    // Budget paths look like: assets:Bank:Checking:Budget:Pet Supplies
-    // Or: assets:Bank:Checking:Budget:Food:Eating Out
-    // Expense paths look like: expenses:Pet Supplies
-    // We need to extract the path after Budget: and prepend expenses:
-    
-    // Check if it's a budget path (contains 'Budget:')
-    if (budgetPath.includes(':Budget:')) {
-      const budgetIndex = budgetPath.indexOf(':Budget:');
-      const expensePath = budgetPath.substring(budgetIndex + 8); // 8 is length of ':Budget:'
-      if (budgetPath.includes('assets:')) {
-        return `expenses:${expensePath}`;
-      }
-    }
-    
-    // For liability categories, return the full path as-is
-    if (categoryType === 'liability' || budgetPath.startsWith('liabilities:')) {
-      return budgetPath;
-    }
-    
-    // If not a budget path, return as-is
-    return budgetPath;
-  }
 
-  async function searchCategories(query, datalistId = 'accounts-list') {
-    if (!query || query.length < 2) {
-      // Clear datalist on early return to prevent [object Object] display
-      const datalist = document.getElementById(datalistId);
-      if (datalist) {
-        while (datalist.firstChild) {
-          datalist.removeChild(datalist.firstChild);
-        }
-      }
-      return;
-    }
-    
-    const datalist = document.getElementById(datalistId);
-    if (!datalist) return;
-    
-    try {
-      const response = await fetch(`/api/categories`);
-      if (response.ok) {
-        const categories = await response.json();
-        // Ensure categories is an array
-        if (!Array.isArray(categories)) return;
-        // Filter categories by query (match display_name)
-        const filtered = categories.filter(cat => cat.display_name.toLowerCase().includes(query.toLowerCase()));
-        // Clear datalist by removing all child nodes
-        while (datalist.firstChild) {
-          datalist.removeChild(datalist.firstChild);
-        }
-        // Only add options if there are results
-        if (filtered.length > 0) {
-          filtered.forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat.full_path;
-            option.textContent = cat.display_name;
-            datalist.appendChild(option);
-          });
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load categories:', e);
-    }
-  }
 
-  // Submit transfer
   // Submit transaction
   async function submitTransaction() {
     const payee = elements.payeeInput.value.trim();

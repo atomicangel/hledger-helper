@@ -36,10 +36,7 @@
         <div class="transaction-form">
           <div class="input-group">
             <label for="payee">Payee</label>
-            <input type="text" id="payee" list="payees-list" placeholder="Enter payee..." autocomplete="off">
-            <datalist id="payees-list">
-              <!-- Populated from /api/payees -->
-            </datalist>
+            <input type="text" id="payee" placeholder="Enter payee..." autocomplete="off">
             <div class="transfer-toggle">
               <label for="transfer-mode">
                 <input type="checkbox" id="transfer-mode"> Transfer
@@ -49,9 +46,6 @@
 
           <div class="split-section">
             <h3>Split Details</h3>
-            <datalist id="split-accounts-list">
-              <!-- Populated from hledger budget accounts for split rows -->
-            </datalist>
             <div id="split-rows">
               <!-- Dynamic split rows -->
             </div>
@@ -73,7 +67,7 @@
         <div class="budget-header">
           <button id="budget-refresh" class="refresh-btn" title="Refresh budget data" aria-label="Refresh budget data">&#x21bb;</button>
         </div>
-        <!-- Phase 2: Hero component container for safe-to-spend display -->
+        <!-- Hero component container for safe-to-spend display -->
         <div class="safe-to-spend-hero hidden"></div>
         <!-- Dynamic group containers injected by JS -->
         <div id="budget-groups-container"></div>
