@@ -1,5 +1,5 @@
 /* Mobile-first design for hledger Helper */
-/* Modern redesign with dark theme, glassmorphism and neumorphic elements */
+/* Tron: Legacy color scheme - black, electric cyan, white, Clu orange */
 
 * {
   box-sizing: border-box;
@@ -12,35 +12,36 @@
 }
 
 :root {
-  /* Modern color palette */
-  --primary: #00ff88;
-  --primary-dark: #00cc66;
-  --primary-light: #66ffaa;
-  --success: #00ff88;
+  /* Tron: Legacy palette */
+  --primary: #00e5ff;
+  --primary-dark: #00b8d4;
+  --primary-light: #99f2ff;
+  --success: #00e5ff;
   --warning: #ffaa00;
-  --danger: #ff4444;
-  --info: #00ddff;
+  --danger: #ff6a00;
+  --error-color: #ee0202;
+  --info: #00e5ff;
   
   /* Dark theme */
-  --bg: #000000;
-  --bg-secondary: #020202;
-  --surface: #0a0a0a;
-  --surface-elevated: #111111;
-  --border: #1a3a1a;
-  --border-hover: #2a5a2a;
+  --bg: #010409;
+  --bg-secondary: #030811;
+  --surface: #070f1d;
+  --surface-elevated: #0b1526;
+  --border: #123a4d;
+  --border-hover: #1f6a8a;
   
   /* Text */
-  --text-primary: #e6ffe6;
-  --text-secondary: #7aff7a;
-  --text-muted: #4a8a4a;
+  --text-primary: #e8f8ff;
+  --text-secondary: #a8e3ff;
+  --text-muted: #4a7a99;
   
   /* Effects */
-  --glass-bg: rgba(10, 10, 10, 0.7);
-  --glass-border: rgba(0, 255, 136, 0.1);
+  --glass-bg: rgba(2, 6, 12, 0.7);
+  --glass-border: rgba(0, 229, 255, 0.15);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(0, 255, 136, 0.3);
+  --shadow-glow: 0 0 20px rgba(0, 229, 255, 0.35);
   
   /* Spacing */
   --space-xs: 4px;
@@ -88,8 +89,8 @@ body::before {
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(circle at 10% 20%, rgba(0, 255, 136, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 90% 80%, rgba(0, 255, 136, 0.1) 0%, transparent 50%);
+    radial-gradient(circle at 10% 20%, rgba(0, 229, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 90% 80%, rgba(0, 229, 255, 0.1) 0%, transparent 50%);
   pointer-events: none;
   z-index: -1;
 }
@@ -171,7 +172,7 @@ body::before {
 }
 
 .pending-indicator.has-pending {
-  color: #fbbf24;
+  color: #ffaa00;
 }
 
 .sync-btn {
@@ -242,14 +243,14 @@ body::before {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, transparent, rgba(0, 255, 136, 0.05));
+  background: linear-gradient(135deg, transparent, rgba(0, 229, 255, 0.05));
   opacity: 0;
   transition: opacity var(--transition-fast);
 }
 
 .tab-btn:hover {
   color: var(--text-primary);
-  background: rgba(0, 255, 136, 0.05);
+  background: rgba(0, 229, 255, 0.05);
 }
 
 .tab-btn:hover::before {
@@ -259,7 +260,7 @@ body::before {
 .tab-btn.active {
   color: var(--primary-light);
   border-bottom-color: var(--primary);
-  background: rgba(0, 255, 136, 0.08);
+  background: rgba(0, 229, 255, 0.08);
 }
 
 .tab-btn.active::after {
@@ -403,7 +404,7 @@ body::before {
   outline: none;
   border-color: var(--primary);
   background: var(--surface-elevated);
-  box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.15);
+  box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.15);
   transform: translateY(-1px);
 }
 
@@ -521,7 +522,7 @@ body::before {
 .split-row select:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.15);
+  box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.15);
 }
 
 .split-row select {
@@ -543,7 +544,7 @@ body::before {
 .split-row select:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.15);
+  box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.15);
 }
 
 /* Cover row must not force the split grid wider than the card:
@@ -582,7 +583,7 @@ body::before {
 .btn-secondary:hover {
   border-color: var(--primary-light);
   color: var(--primary-light);
-  background: rgba(0, 255, 136, 0.05);
+  background: rgba(0, 229, 255, 0.05);
   transform: translateY(-1px);
 }
 
@@ -899,7 +900,7 @@ body::before {
 }
 .transfer-toggle label input[type="checkbox"]:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.3);
+  box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.3);
 }
 
 /* Budget Tab Styles */
@@ -963,7 +964,7 @@ body::before {
   background: var(--danger);
 }
 .bar-fill.partial {
-  background: #ffdd00;
+  background: #0e6a8f;
 }
 .safe-to-spend-hero {
   text-align: center;
@@ -1008,7 +1009,7 @@ body::before {
   line-height: 1;
 }
 .refresh-btn:hover {
-  color: var(--text, #000);
+  color: var(--text, #030812);
 }
 .refresh-btn:disabled {
   opacity: 0.6;

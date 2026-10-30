@@ -285,7 +285,7 @@
         balSpan.className = "header-balance";
         const hbal = headerBalances[header];
         balSpan.textContent = " " + (hbal < 0 ? "-" : "") + "\$" + Math.abs(hbal).toFixed(2);
-        if (hbal < 0) balSpan.style.color = "#cc0000";
+        if (hbal < 0) balSpan.style.color = "var(--danger)";
         headerDiv.appendChild(balSpan);
       }
       containerEl.insertBefore(headerDiv, container);  // Insert header before items
@@ -342,7 +342,7 @@
     } else {
       meta.textContent = `${fmt(item.spent_total)} of ${fmt(item.budget_limit)} funded`;
       if (under) {
-        meta.style.color = '#ffdd00';
+        meta.style.color = '#6fb3dd';
         meta.style.fontWeight = 'bold';
       } else {
         meta.style.color = 'var(--success)';
@@ -438,7 +438,7 @@
 
   function updateNetworkStatus(isOnline) {
     elements.statusIndicator.textContent = isOnline ? 'Online' : 'Offline';
-    elements.statusIndicator.style.color = isOnline ? 'white' : '#ff9800';
+    elements.statusIndicator.style.color = isOnline ? 'white' : '#ff6a00';
     
     getPendingCount().then(pending => {
       if (pending > 0) {
@@ -562,6 +562,47 @@
     return matches.length === 1 ? matches[0] : null;
   }
 
+  // Default expense for a budget source: the unique expense whose
+  // display name's last segment matches the source's last segment
+  // (case-insensitive). Expenses are a single flat namespace, never
+  // split by Checking/Savings, so a match is unique by construction;
+  // zero or multiple matches leave the expense untouched for a manual
+  // pick. Credit sources are excluded: on a card row the expense drives
+  // the cover flow, it is not derived from the source. Unallocated has
+  // no matching expense, so it falls through to manual the same way.
+  function defaultExpenseFor(source, expenseSelect) {
+    if (!source || isCreditSource(source)) return '';
+    const last = source.split(':').filter(Boolean).pop();
+    if (!last) return '';
+    const matches = [];
+    for (const opt of expenseSelect.options) {
+      if (!opt.value) continue;
+      const seg = opt.textContent.split(':').filter(Boolean).pop();
+      if (seg && seg.toLowerCase() === last.toLowerCase()) matches.push(opt.value);
+    }
+    return matches.length === 1 ? matches[0] : '';
+  }
+
+  // Derive a row's expense from its source, unless the user already
+  // picked an expense on this row. Called on source change and once the
+  // row's expense list arrives. Transfer mode is excluded: there the
+  // second select is a destination account, not an expense. Setting
+  // .value programmatically does not fire 'change', so an auto-select
+  // never marks the row expenseTouched itself. A match selects that
+  // expense; no match resets to the placeholder, so a previous
+  // auto-select never silently carries over to an unrelated source
+  // (the Unallocated case: no correlation, so the user picks).
+  function refreshExpenseDefault(row) {
+    if (state.transferMode || row.dataset.expenseTouched) return;
+    const expenseSelect = row.querySelector('.split-expense');
+    if (!expenseSelect) return;
+    const source = row.querySelector('.split-source').value.trim();
+    // A card row's expense is user-picked and drives the cover flow;
+    // never set or clear it from the source.
+    if (isCreditSource(source)) return;
+    expenseSelect.value = defaultExpenseFor(source, expenseSelect);
+  }
+
   // Show/hide and (re)compute a row's cover UI. Called on source change,
   // expense change, and once the row's category list arrives.
   function refreshCoverRow(row) {
@@ -678,12 +719,18 @@
     amountInput.addEventListener('input', updateTotal);
     amountInput.addEventListener('change', updateTotal);
     sourceSelect.addEventListener('change', () => {
-      // Fresh card, fresh default: a manual cover-from pick for the old
-      // source must not carry over.
+      // Fresh source, fresh defaults: a manual cover-from pick for the
+      // old source must not carry over, and the expense re-derives from
+      // the new source unless the user already picked one on this row.
       delete row.dataset.coverFromTouched;
+      delete row.dataset.expenseTouched;
+      refreshExpenseDefault(row);
       refreshCoverRow(row);
     });
-    expenseSelect.addEventListener('change', () => refreshCoverRow(row));
+    expenseSelect.addEventListener('change', () => {
+      row.dataset.expenseTouched = '1';
+      refreshCoverRow(row);
+    });
     
     // Populate source and expense from the cached lists (fetched once per
     // page load). In transfer mode both selects share one categories
@@ -710,6 +757,9 @@
       getExpenses()
         .then(expenses => {
           groupAccountsIntoSections(expenseSelect, filterExpenseOptions(expenses));
+          // A source picked before the expense list arrived still gets
+          // its default once the options exist.
+          refreshExpenseDefault(row);
         })
         .catch(e => console.log('Failed to load expenses:', e));
     }
