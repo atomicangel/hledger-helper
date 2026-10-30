@@ -9,11 +9,6 @@ pub enum HledgerError {
         cmd: String,
         source: std::io::Error,
     },
-    #[error("Hledger command '{cmd}' failed with exit status: {status}")]
-    NonZeroExit {
-        cmd: String,
-        status: i32,
-    },
     #[error("Hledger command '{cmd}' failed with exit status {status}: {stderr}")]
     NonZeroExitWithStderr {
         cmd: String,
@@ -140,13 +135,15 @@ impl Hledger {
         if output.status.success() {
             Ok(())
         } else {
-            let _stderr = String::from_utf8_lossy(&output.stderr);
-            Err(HledgerError::NonZeroExit {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(HledgerError::NonZeroExitWithStderr {
                 cmd: format!("{} check (LEDGER_FILE={})", self.binary, journal_path),
                 status: output.status.code().unwrap_or(-1),
+                stderr: stderr.to_string(),
             })
         }
     }
+
 }
 
 impl Default for Hledger {

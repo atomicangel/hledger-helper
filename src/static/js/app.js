@@ -11,7 +11,11 @@
     creditLocations: [],
     safeToSpendAccount: '',
     transferJournal: '',
-    transferMode: false
+    transferMode: false,
+    categories: null,
+    expenses: null,
+    categoriesPromise: null,
+    expensesPromise: null
   };
 
   // DOM Elements
@@ -23,6 +27,7 @@
     addSplitBtn: document.getElementById('add-split'),
     transferMode: document.getElementById('transfer-mode'),
     syncBtn: document.getElementById('sync-btn'),
+    refreshAccountsBtn: document.getElementById('refresh-accounts'),
     pendingIndicator: document.getElementById('pending-indicator'),
     offlineIndicator: document.getElementById('offline-indicator'),
     statusIndicator: document.getElementById('status-indicator')
@@ -58,20 +63,49 @@
     }
   }
 
-  // Load payment sources dynamically from API
-  // Load source accounts from API
+  // Cached account lists, fetched once per page load and shared by every
+  // row, so adding lines never re-spawns hledger. An explicit refresh
+  // (refreshAccounts) or a page reload clears the cache.
+  function getCategories() {
+    if (state.categories) return Promise.resolve(state.categories);
+    if (!state.categoriesPromise) {
+      state.categoriesPromise = fetch('/api/categories')
+        .then(res => res.json())
+        .then(data => { state.categories = data; return data; })
+        .catch(e => { state.categoriesPromise = null; throw e; });
+    }
+    return state.categoriesPromise;
+  }
+
+  function getExpenses() {
+    if (state.expenses) return Promise.resolve(state.expenses);
+    if (!state.expensesPromise) {
+      state.expensesPromise = fetch('/api/expenses')
+        .then(res => res.json())
+        .then(data => { state.expenses = data; return data; })
+        .catch(e => { state.expensesPromise = null; throw e; });
+    }
+    return state.expensesPromise;
+  }
+
+  // Expense-dropdown filter, shared by row creation and refresh.
+  function filterExpenseOptions(expenses) {
+    return expenses.filter(e => e.full_path !== 'liabilities' &&
+              e.full_path !== 'expenses' &&
+              !e.full_path.includes(':Budget:') &&
+              e.display_name.trim() !== '');
+  }
+
+  // Load payment sources: primes the category cache (the #source-account
+  // element no longer exists, so there is nothing to populate here).
   async function loadSources() {
     try {
-      const response = await fetch('/api/categories');
-      if (response.ok) {
-        const sources = await response.json();
-        populateSourceDropdown(sources);
-      }
+      const sources = await getCategories();
+      populateSourceDropdown(sources);
     } catch (e) {
       console.log('Failed to load sources:', e);
     }
   }
-
 
   // Helper: group accounts into config-derived sections based on budget_locations/liability_locations prefixes
   // Config prefixes from config.yaml drive the dropdown grouping (e.g., "assets:Cash:Wallet:" → header = "Wallet")
@@ -351,6 +385,19 @@
         elements.splitRows.innerHTML = '';
         addSplitRow();
         updateTotal();
+      });
+    }
+
+    // Accounts refresh button: re-fetch lists and update rows in place
+    if (elements.refreshAccountsBtn) {
+      elements.refreshAccountsBtn.addEventListener('click', async () => {
+        const btn = elements.refreshAccountsBtn;
+        btn.disabled = true;
+        try {
+          await refreshAccounts();
+        } finally {
+          btn.disabled = false;
+        }
       });
     }
 
@@ -638,9 +685,10 @@
     });
     expenseSelect.addEventListener('change', () => refreshCoverRow(row));
     
-    // Populate source and expense using shared helper function
-    fetch('/api/categories')
-      .then(res => res.json())
+    // Populate source and expense from the cached lists (fetched once per
+    // page load). In transfer mode both selects share one categories
+    // fetch; afterwards no row costs a network round trip.
+    getCategories()
       .then(sources => {
         groupAccountsIntoSections(sourceSelect, sources);
         // Cover options come from the same category list.
@@ -649,26 +697,23 @@
           row._coverOptions = coverEnvelopeOptions(sources);
           refreshCoverRow(row);
         }
-      });
+      })
+      .catch(e => console.log('Failed to load sources:', e));
     if (state.transferMode) {
       // Populate destination select with categories (sources)
-      fetch('/api/categories')
-        .then(res => res.json())
+      getCategories()
         .then(sources => {
           groupAccountsIntoSections(expenseSelect, sources);
-        });
+        })
+        .catch(e => console.log('Failed to load sources:', e));
     } else {
-      fetch('/api/expenses')
-        .then(res => res.json())
+      getExpenses()
         .then(expenses => {
-          const filtered = expenses.filter(e => e.full_path !== 'liabilities' && 
-                    e.full_path !== 'expenses' && 
-                    !e.full_path.includes(':Budget:') && 
-                    e.display_name.trim() !== '');
-          groupAccountsIntoSections(expenseSelect, filtered);
-        });
+          groupAccountsIntoSections(expenseSelect, filterExpenseOptions(expenses));
+        })
+        .catch(e => console.log('Failed to load expenses:', e));
     }
-    
+
     // Add remove button
     const removeBtn = document.createElement('button');
     removeBtn.textContent = '×';
@@ -714,6 +759,83 @@
     }
     
     updateTotal();
+  }
+
+  // Restore a select's previous value if it still exists, else clear it.
+  function restoreSelectValue(select, value) {
+    if (!value) { select.value = ''; return; }
+    const exists = Array.from(select.options).some(o => o.value === value);
+    select.value = exists ? value : '';
+  }
+
+  // Explicit account refresh: re-fetch both lists and repopulate every
+  // existing row in place, preserving each row's selections, amounts and
+  // cover picks wherever the account still exists. A selection whose
+  // account vanished from the new lists clears to "-- Select --" rather
+  // than pointing at a stale option.
+  async function refreshAccounts() {
+    state.categories = null;
+    state.expenses = null;
+    state.categoriesPromise = null;
+    state.expensesPromise = null;
+    let categories = null;
+    let expenses = null;
+    try {
+      categories = await getCategories();
+    } catch (e) {
+      console.log('Failed to refresh categories:', e);
+    }
+    try {
+      expenses = await getExpenses();
+    } catch (e) {
+      console.log('Failed to refresh expenses:', e);
+    }
+    if (!categories && !expenses) {
+      alert('Could not refresh accounts. Keeping the current lists.');
+      return;
+    }
+    document.querySelectorAll('.split-row').forEach(row => {
+      const sourceSelect = row.querySelector('.split-source');
+      const expenseSelect = row.querySelector('.split-expense');
+      const savedSource = sourceSelect ? sourceSelect.value : '';
+      const savedExpense = expenseSelect ? expenseSelect.value : '';
+      if (sourceSelect && categories) {
+        groupAccountsIntoSections(sourceSelect, categories);
+        restoreSelectValue(sourceSelect, savedSource);
+      }
+      if (expenseSelect) {
+        if (state.transferMode) {
+          if (categories) {
+            groupAccountsIntoSections(expenseSelect, categories);
+            restoreSelectValue(expenseSelect, savedExpense);
+          }
+        } else if (expenses) {
+          groupAccountsIntoSections(expenseSelect, filterExpenseOptions(expenses));
+          restoreSelectValue(expenseSelect, savedExpense);
+        }
+      }
+      const coverWrap = row.querySelector('.cover-row');
+      if (coverWrap && categories) {
+        const coverFromSelect = row.querySelector('.cover-from');
+        const coverToSelect = row.querySelector('.cover-to');
+        const touched = !!row.dataset.coverFromTouched;
+        const savedCoverFrom = coverFromSelect ? coverFromSelect.value : '';
+        const savedCoverTo = coverToSelect ? coverToSelect.value : '';
+        row._coverOptions = coverEnvelopeOptions(categories);
+        if (coverFromSelect) delete coverFromSelect.dataset.populated;
+        if (coverToSelect) delete coverToSelect.dataset.populated;
+        refreshCoverRow(row);
+        // Untouched rows take the fresh default; touched rows keep the
+        // user's pick wherever it still exists and the cover row is shown.
+        if (touched && coverWrap.style.display !== 'none') {
+          if (coverFromSelect) restoreSelectValue(coverFromSelect, savedCoverFrom);
+          if (coverToSelect && coverToSelect.style.display !== 'none') {
+            restoreSelectValue(coverToSelect, savedCoverTo);
+            coverWrap.dataset.coverTo = coverToSelect.value;
+          }
+        }
+      }
+    });
   }
 
   // Calculate total (for split transactions)

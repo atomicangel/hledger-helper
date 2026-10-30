@@ -100,3 +100,30 @@ impl Drop for FileHandler {
         }
     }
 }
+
+/// Resolve a client-supplied target_file against the journal root.
+/// The result is always strictly under nas_path: absolute paths and any
+/// `..` component are rejected, so a request can never address a file
+/// outside the journal tree (no traversal escape). Note: this is a
+/// lexical check. A symlink planted inside nas_path pointing outside
+/// would still escape it; nas_path is operator-owned, so planting one
+/// already requires local filesystem access.
+pub fn resolve_target_file(nas_path: &str, target_file: &str) -> Result<String, String> {
+    if target_file.is_empty() {
+        return Err("target_file must not be empty".to_string());
+    }
+    if target_file.contains('\0') {
+        return Err("target_file must not contain NUL".to_string());
+    }
+    let rel = std::path::Path::new(target_file);
+    if rel.is_absolute() {
+        return Err("target_file must be a relative path".to_string());
+    }
+    if rel
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
+    {
+        return Err("target_file must not contain '..'".to_string());
+    }
+    Ok(format!("{}/{}", nas_path, target_file))
+}

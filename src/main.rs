@@ -7,6 +7,7 @@ mod file_handler;
 mod static_handler;
 mod api;
 mod sanitize;
+mod journal_write;
 
 use config::Config;
 use static_handler::create_router as create_app_router;

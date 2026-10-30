@@ -49,12 +49,16 @@ fn full_workflow_integration() {
 
 /// Test appending transactions creates valid entries.  
 #[test]  
-fn append_validated_creates_entries() {  
-    let journal = "/tmp/integration.journal";
-    
-    match append_validated(journal, "2024-10-30 * purchase\n  assets:Cash   -100") {
-        Ok(content) => assert!(content.contains("purchase")),
-        Err(e) => panic!("Unexpected error: {:?}", e),
-    }  
+fn append_validated_creates_entries() {
+    let dir = tempfile::tempdir().unwrap();
+    let journal = dir.path().join("integration.journal");
+    let path = journal.to_str().unwrap();
+    append_validated(
+        path,
+        "2024-10-30 * purchase\n  assets:Cash   $100.00\n  expenses:Food   -$100.00",
+    )
+    .unwrap();
+    let content = std::fs::read_to_string(path).unwrap();
+    assert!(content.contains("purchase"));
 }
 

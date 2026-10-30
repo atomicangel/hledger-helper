@@ -7,9 +7,10 @@ use std::fs;
 
 #[test]
 fn test_hledger_error_display() {
-    let err = HledgerError::NonZeroExit { cmd: "hledger check".into(), status: 1 };
+    let err = HledgerError::NonZeroExitWithStderr { cmd: "hledger check".into(), status: 1, stderr: "parse error".into() };
     assert!(err.to_string().contains("hledger check"));
     assert!(err.to_string().contains("1"));
+    assert!(err.to_string().contains("parse error"));
 }
 
 #[test]
@@ -306,7 +307,7 @@ server:
         target_file: None,
     };
     
-    let path = determine_journal_path(&config, &req);
+    let path = determine_journal_path(&config, &req).unwrap();
     assert_eq!(path, "/test/2026/example-card.journal");
 }
 
@@ -345,7 +346,7 @@ server:
         target_file: None,
     };
     
-    let path = determine_journal_path(&config, &req);
+    let path = determine_journal_path(&config, &req).unwrap();
     assert_eq!(path, "/test/main.journal");
 }
 
@@ -384,6 +385,57 @@ server:
         target_file: Some("2026/custom.journal".to_string()),
     };
     
-    let path = determine_journal_path(&config, &req);
+    let path = determine_journal_path(&config, &req).unwrap();
     assert_eq!(path, "/test/2026/custom.journal");
+}
+
+#[test]
+fn test_determine_journal_path_rejects_traversal() {
+    let config_yaml = r#"
+nas_path: "/test"
+top_journal: "main.journal"
+current_year: 2026
+llm_endpoint: null
+budget_locations:
+  - "assets:Bank:Checking:Budget:"
+liability_locations: []
+expense_locations: []
+transfer_journal: "2026/transfers.journal"
+payment_sources:
+  assets:bank:
+    label: "Bank"
+    journal: "2026/example-card.journal"
+server:
+  bind_address: "0.0.0.0"
+  port: 8080
+"#;
+    let temp_dir = TempDir::new().unwrap();
+    let config_path = temp_dir.path().join("test.yaml");
+    fs::write(&config_path, config_yaml).unwrap();
+    let config = Config::load(config_path.to_str().unwrap()).unwrap();
+    for bad in [
+        "../evil.journal",
+        "2026/../../evil.journal",
+        "/abs/evil.journal",
+        "2026/../evil.journal",
+    ] {
+        let req = hledger_helper::api::transactions::TransactionRequest {
+            transaction: "2026-01-15 * Test\n  expenses:Food  $100.00\n  assets:bank  -$100.00".to_string(),
+            target_file: Some(bad.to_string()),
+        };
+        assert!(
+            determine_journal_path(&config, &req).is_err(),
+            "target_file {:?} should be rejected",
+            bad
+        );
+    }
+    // A contained target still resolves.
+    let req = hledger_helper::api::transactions::TransactionRequest {
+        transaction: "2026-01-15 * Test\n  expenses:Food  $100.00\n  assets:bank  -$100.00".to_string(),
+        target_file: Some("2026/custom.journal".to_string()),
+    };
+    assert_eq!(
+        determine_journal_path(&config, &req).unwrap(),
+        "/test/2026/custom.journal"
+    );
 }

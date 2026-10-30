@@ -1,11 +1,11 @@
-//! C62 column alignment tests for journal output (FIXES.md D1)
+//! Column 67 alignment tests for journal output (FIXES.md D1)
 
 use hledger_helper::journal_write::{format_transaction, COLUMN_START};
 
-/// Test that COLUMN_START constant is set to 62 per FIXES.md spec.
+/// Test that COLUMN_START constant is set to 67.
 #[test]  
-fn column_start_is_62() {  
-    assert_eq!(COLUMN_START, 62);
+fn column_start_is_67() {  
+    assert_eq!(COLUMN_START, 67);
 }
 
 /// Test format_transaction with various ledger entry types.
