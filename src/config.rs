@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::fs;
 
 /// Configuration for the hledger-helper backend
@@ -11,8 +11,10 @@ pub struct Config {
     /// Current year for journal file routing
     pub current_year: u16,
     /// Budget account locations (prefixes for budget accounts)
+    #[serde(deserialize_with = "null_as_empty_vec")]
     pub budget_locations: Vec<String>,
     /// Liability account locations (prefixes for liability accounts)
+    #[serde(deserialize_with = "null_as_empty_vec")]
     pub liability_locations: Vec<String>,
     /// Credit account locations (prefixes for accounts you charge purchases
     /// to and later pay off: credit cards, lines of credit, BNPL/point-of-sale
@@ -20,9 +22,10 @@ pub struct Config {
     /// prefixes shows the auto-cover UI. Paydown-only debts (IRS, student
     /// loans, mortgages) are NOT spending sources and must not be listed here.
     /// Missing key = no cover UI (fail-closed).
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_empty_vec")]
     pub credit_locations: Vec<String>,
     /// Expense account locations (prefixes for expense accounts)
+    #[serde(deserialize_with = "null_as_empty_vec")]
     pub expense_locations: Vec<String>,
     /// Account whose balance is shown as "safe to spend" on Budget tab
     #[serde(default = "default_safe_spend_account")]  
@@ -31,7 +34,7 @@ pub struct Config {
     #[serde(default = "default_safe_spend_header")]
     pub safe_to_spend_header: String,
     /// Budget entries from array config section
-    #[serde(default = "Vec::new")]  
+    #[serde(default = "Vec::new", deserialize_with = "null_as_empty_vec")]  
     pub budget_entries: Vec<BudgetEntry>,
     /// Payment sources for UI buttons and journal routing
     pub payment_sources: std::collections::HashMap<String, PaymentSource>,
@@ -48,6 +51,19 @@ pub struct Config {
 fn default_safe_spend_account() -> String {
     // Return empty string if YAML key missing; user should add to config.yaml
     String::new()
+}
+
+/// Null-tolerant sequence deserialization: a bare key (`liability_locations:`
+/// with no value) parses as an empty list. serde_yml accepted null for
+/// sequences; noyalib rejects it, and prod's real config relies on the
+/// lenient behavior, so preserve it explicitly.
+fn null_as_empty_vec<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    let opt = Option::<Vec<T>>::deserialize(deserializer)?;
+    Ok(opt.unwrap_or_default())
 }
 
 fn default_safe_spend_header() -> String {
@@ -126,12 +142,12 @@ impl Config {
         // only absent keys are reported here. Malformed YAML (not a
         // mapping, or unparsable at all) falls through to the normal
         // parse below, which reports it as a parse error.
-        if let Ok(serde_yml::Value::Mapping(mapping)) =
-            serde_yml::from_str::<serde_yml::Value>(&content)
+        if let Ok(noyalib::compat::serde_yaml::Value::Mapping(mapping)) =
+            noyalib::compat::serde_yaml::from_str::<noyalib::compat::serde_yaml::Value>(&content)
         {
             let keys: Vec<&str> = mapping
                 .iter()
-                .filter_map(|(k, _)| k.as_str())
+                .map(|(k, _)| k.as_str())
                 .collect();
             let mut missing: Vec<String> = Vec::new();
             for (key, explanation) in [
@@ -169,14 +185,14 @@ impl Config {
                     missing.push(format!("{} -- {}", key, explanation));
                 }
             }
-            if let Some(serde_yml::Value::Mapping(server)) = mapping
+            if let Some(noyalib::compat::serde_yaml::Value::Mapping(server)) = mapping
                 .iter()
-                .find(|(k, _)| k.as_str() == Some("server"))
+                .find(|(k, _)| k.as_str() == "server")
                 .map(|(_, v)| v)
             {
                 let server_keys: Vec<&str> = server
                     .iter()
-                    .filter_map(|(k, _)| k.as_str())
+                    .map(|(k, _)| k.as_str())
                     .collect();
                 for (key, explanation) in [
                     ("bind_address", "address to listen on (e.g. 127.0.0.1)"),
@@ -192,7 +208,7 @@ impl Config {
             }
         }
 
-        let config: Self = serde_yml::from_str(&content)
+        let config: Self = noyalib::compat::serde_yaml::from_str(&content)
             .map_err(|e| ConfigError::ParseFailed(path.to_string(), e))?;
 
         // transfer_journal is required: no hardcoded fallback exists, so
@@ -378,7 +394,7 @@ pub enum ConfigError {
     #[error("Failed to read config file '{0}': {1}")]
     ReadFailed(String, std::io::Error),
     #[error("Failed to parse config file '{0}': {1}")]
-    ParseFailed(String, serde_yml::Error),
+    ParseFailed(String, noyalib::compat::serde_yaml::Error),
     #[error("transfer_journal must be defined in config.yaml")]
     TransferJournalMissing,
     #[error("missing required config keys: {0}. Add them to config.yaml (see config.example.yaml for a complete example)")]
