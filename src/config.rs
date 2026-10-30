@@ -126,8 +126,8 @@ impl Config {
         // only absent keys are reported here. Malformed YAML (not a
         // mapping, or unparsable at all) falls through to the normal
         // parse below, which reports it as a parse error.
-        if let Ok(serde_yaml::Value::Mapping(mapping)) =
-            serde_yaml::from_str::<serde_yaml::Value>(&content)
+        if let Ok(serde_yml::Value::Mapping(mapping)) =
+            serde_yml::from_str::<serde_yml::Value>(&content)
         {
             let keys: Vec<&str> = mapping
                 .iter()
@@ -169,7 +169,7 @@ impl Config {
                     missing.push(format!("{} -- {}", key, explanation));
                 }
             }
-            if let Some(serde_yaml::Value::Mapping(server)) = mapping
+            if let Some(serde_yml::Value::Mapping(server)) = mapping
                 .iter()
                 .find(|(k, _)| k.as_str() == Some("server"))
                 .map(|(_, v)| v)
@@ -192,7 +192,7 @@ impl Config {
             }
         }
 
-        let config: Self = serde_yaml::from_str(&content)
+        let config: Self = serde_yml::from_str(&content)
             .map_err(|e| ConfigError::ParseFailed(path.to_string(), e))?;
 
         // transfer_journal is required: no hardcoded fallback exists, so
@@ -378,7 +378,7 @@ pub enum ConfigError {
     #[error("Failed to read config file '{0}': {1}")]
     ReadFailed(String, std::io::Error),
     #[error("Failed to parse config file '{0}': {1}")]
-    ParseFailed(String, serde_yaml::Error),
+    ParseFailed(String, serde_yml::Error),
     #[error("transfer_journal must be defined in config.yaml")]
     TransferJournalMissing,
     #[error("missing required config keys: {0}. Add them to config.yaml (see config.example.yaml for a complete example)")]

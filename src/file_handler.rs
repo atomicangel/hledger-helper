@@ -73,6 +73,14 @@ impl FileHandler {
         file.flush()
             .map_err(|e| FileHandlerError::WriteFailed(self.path.clone(), e))?;
 
+        // Best-effort durability: a completed write should survive a
+        // crash, so sync it to storage. A sync failure is logged, not
+        // reported: the bytes are already in the file, and reporting
+        // failure for a landed entry invites a double-submit.
+        if let Err(e) = file.sync_all() {
+            tracing::warn!("Failed to sync journal file after append: {}", e);
+        }
+
         Ok(())
     }
 

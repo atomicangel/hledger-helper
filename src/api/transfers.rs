@@ -68,6 +68,19 @@ pub async fn create_transfer(
         .into_response();
     }
 
+    // Sanity bound: a transfer moves money between the user's own
+    // accounts, so it must be positive and finite. The upper bound
+    // is a tripwire against absurd values (1e308), not a real limit.
+    if !req.amount.is_finite() || req.amount <= 0.0 || req.amount > 1_000_000_000_000.0 {
+        return Json(TransferResponse {
+            valid: false,
+            message: "Invalid transfer: amount must be greater than zero and at most 1,000,000,000,000"
+                .to_string(),
+            transaction: None,
+        })
+        .into_response();
+    }
+
     // Build the transfer transaction (use local timezone instead of UTC)
     let date = chrono::Local::now().date_naive().format("%Y-%m-%d").to_string();
     let payee = &req.payee;
@@ -79,8 +92,6 @@ pub async fn create_transfer(
     );
 
     // Append through the staged-check gate (see append_validated).
-    tracing::info!("Validating transaction: {}", transaction);
-    tracing::info!("Journal path: {}", journal_path);
     match create_transfer_impl(&journal_path, &transaction) {
         Ok(()) => Json(TransferResponse {
             valid: true,
@@ -89,12 +100,10 @@ pub async fn create_transfer(
         })
         .into_response(),
         Err(JournalWriteError::File(msg)) => {
+            // Server-side log keeps the detail; the client gets a
+            // generic message so filesystem paths never leak.
             tracing::error!("Failed to write transfer: {}", msg);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Journal file I/O error: {}", msg),
-            )
-                .into_response()
+            (StatusCode::INTERNAL_SERVER_ERROR, "Journal file I/O error").into_response()
         }
         Err(e) => Json(TransferResponse {
             valid: false,

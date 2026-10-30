@@ -75,7 +75,7 @@ async fn main() {
         .await
         .expect("Failed to bind to address");
     
-    axum::serve(listener, app)
+    axum::serve(listener, app.into_make_service_with_connect_info::<std::net::SocketAddr>())
         .await
         .expect("Server failed");
 }

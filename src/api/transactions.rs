@@ -53,12 +53,10 @@ pub async fn create_transaction(
         })
         .into_response(),
         Err(JournalWriteError::File(msg)) => {
+            // Server-side log keeps the detail; the client gets a
+            // generic message so filesystem paths never leak.
             tracing::error!("Failed to write transaction: {}", msg);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Journal file I/O error: {}", msg),
-            )
-                .into_response()
+            (StatusCode::INTERNAL_SERVER_ERROR, "Journal file I/O error").into_response()
         }
         Err(e) => Json(TransactionResponse {
             valid: false,

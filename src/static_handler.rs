@@ -1,7 +1,17 @@
-use axum::{Router, response::{Html, Response}, routing::{get, post}, extract::Path};
-use axum::http::{StatusCode, header};
+use axum::{
+    Router,
+    extract::{ConnectInfo, Path, Request},
+    middleware::Next,
+    response::{Html, IntoResponse, Response},
+    routing::{get, post},
+};
+use axum::http::{HeaderValue, StatusCode, header};
 use rust_embed::Embed;
 use std::sync::Arc;
+use std::collections::HashMap;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::sync::{Mutex, OnceLock};
+use std::time::{Duration, Instant};
 
 use crate::config::Config;
 use crate::api;
@@ -23,6 +33,7 @@ pub fn create_router(config: Arc<Config>) -> Router {
         .route("/api/transactions", post(api::create_transaction))
         .route("/api/transfers", post(api::create_transfer))
         .route("/*filename", get(static_file_handler))
+        .layer(axum::middleware::from_fn(security_middleware))
         .with_state(config)
 }
 
@@ -42,21 +53,19 @@ async fn service_worker_handler() -> Html<String> {
 }
 
 async fn config_handler(axum::extract::State(config): axum::extract::State<Arc<Config>>) -> String {
+    // Only what the frontend actually reads (see app.js loadConfig):
+    // location prefixes for dropdown grouping, the safe-to-spend
+    // account, and the transfer journal for covers. Everything else
+    // the old response carried (nas_path, server bind/port,
+    // payment-source journal filenames, top_journal, current_year)
+    // is server internals and must not leak to clients.
     serde_json::json!({
-        "nas_path": config.nas_path,
-        "top_journal": config.top_journal,
-        "current_year": config.current_year,
         "budget_locations": config.budget_locations,
         "liability_locations": config.liability_locations,
         "expense_locations": config.expense_locations,
         "credit_locations": config.credit_locations,
         "safe_to_spend_account": config.safe_to_spend_account,
-        "transfer_journal": config.transfer_journal,
-        "payment_sources": config.payment_sources,
-        "server": {
-            "bind_address": config.server.bind_address,
-            "port": config.server.port
-        }
+        "transfer_journal": config.transfer_journal
     }).to_string()
 }
 
@@ -87,4 +96,62 @@ fn infer_content_type(filename: &str) -> &'static str {
         Some("ico") => "image/x-icon",
         _ => "text/plain; charset=utf-8",
     }
+}
+
+/// Per-IP rate-limit window: 300 requests per 60 seconds. Generous for
+/// a single-user app (a page load is ~10 requests); it exists to stop
+/// floods, since every read spawns an hledger process.
+const RATE_LIMIT_WINDOW: Duration = Duration::from_secs(60);
+const RATE_LIMIT_MAX: u32 = 300;
+
+/// Fixed-window counters per client IP. Only entries inside the window
+/// are kept (pruned on every request), so the table stays tiny.
+static RATE_LIMIT_TABLE: OnceLock<Mutex<HashMap<IpAddr, (Instant, u32)>>> =
+    OnceLock::new();
+
+fn rate_limit_table() -> &'static Mutex<HashMap<IpAddr, (Instant, u32)>> {
+    RATE_LIMIT_TABLE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// Security middleware: per-IP rate limiting plus response headers on
+/// every response (including 429s and static assets).
+async fn security_middleware(req: Request, next: Next) -> Response {
+    let ip = req
+        .extensions()
+        .get::<ConnectInfo<SocketAddr>>()
+        .map(|c| c.0.ip())
+        .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED));
+    let now = Instant::now();
+    let limited = {
+        let mut table = rate_limit_table().lock().unwrap_or_else(|e| e.into_inner());
+        table.retain(|_, (t, _)| now.duration_since(*t) < RATE_LIMIT_WINDOW);
+        let entry = table.entry(ip).or_insert((now, 0));
+        entry.1 += 1;
+        entry.1 > RATE_LIMIT_MAX
+    };
+    let mut res = if limited {
+        let mut r = (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded").into_response();
+        r.headers_mut()
+            .insert("retry-after", HeaderValue::from_static("60"));
+        r
+    } else {
+        next.run(req).await
+    };
+    let headers = res.headers_mut();
+    headers.insert(
+        "x-content-type-options",
+        HeaderValue::from_static("nosniff"),
+    );
+    headers.insert("x-frame-options", HeaderValue::from_static("DENY"));
+    headers.insert(
+        "referrer-policy",
+        HeaderValue::from_static("no-referrer"),
+    );
+    headers.insert(
+        "content-security-policy",
+        HeaderValue::from_static(
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; base-uri 'self'; frame-ancestors 'none'",
+        ),
+    );
+    res
 }

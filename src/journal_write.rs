@@ -3,7 +3,7 @@ use std::fs;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::file_handler::FileHandler;
-use crate::hledger::Hledger;
+use crate::hledger::{Hledger, HledgerError};
 use crate::sanitize::sanitize_journal_text;
 
 /// Error when writing a validated journal.
@@ -212,6 +212,14 @@ pub fn validate_transaction_text(transaction: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Scrub a staging-file path out of hledger output before it reaches a
+/// client: the staged path embeds the real journal path, which must
+/// never leak in an error message.
+fn scrub_stage_path(text: &str, stage_path: &str) -> String {
+    text.replace(&format!("./{}", stage_path), "staged journal")
+        .replace(stage_path, "staged journal")
+}
+
 /// Append a transaction to a journal, gated by a staged hledger check.
 /// The staged file holds the existing journal plus the new transaction,
 /// exactly as the real file will look after the append; only if
@@ -279,15 +287,19 @@ pub fn append_validated(journal_path: &str, content: &str) -> Result<(), Journal
             .and_then(|_| hledger.check(&existing_stage).err())
             .is_some();
         if existing_broken {
-            return Err(JournalWriteError::ExistingJournalInvalid(format!(
-                "existing journal {} already fails hledger check; refusing to append",
-                journal_path
-            )));
+            return Err(JournalWriteError::ExistingJournalInvalid(
+                "existing journal already fails hledger check; refusing to append".to_string(),
+            ));
         }
-        return Err(JournalWriteError::BreaksJournal(format!(
-            "new transaction breaks journal {}: {}",
-            journal_path, e
-        )));
+        // Report hledger's own diagnostic, with the staging path
+        // scrubbed out; the real journal path never reaches the client.
+        let detail = match &e {
+            HledgerError::NonZeroExitWithStderr { stderr, .. } => {
+                scrub_stage_path(stderr, &stage_path)
+            }
+            _ => scrub_stage_path(&e.to_string(), &stage_path),
+        };
+        return Err(JournalWriteError::BreaksJournal(detail));
     }
 
     let mut file = FileHandler::open(journal_path)
