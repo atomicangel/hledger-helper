@@ -946,6 +946,8 @@
           addSplitRow();
           elements.totalAmount.textContent = '$0.00';
           alert('Transfer(s) submitted successfully!');
+          // Put the cursor back in Payee for the next entry
+          elements.payeeInput.focus();
         } else {
           throw new Error('One or more transfers failed');
         }
@@ -1029,6 +1031,8 @@
           addSplitRow();
           elements.totalAmount.textContent = '$0.00';
           alert('Purchase saved, but the cover transfer FAILED and was queued for retry. Cover text for manual entry:\n\n' + remaining.join('\n') + '\nError: ' + coverError);
+          // Put the cursor back in Payee for the next entry
+          elements.payeeInput.focus();
           return;
         }
       }
@@ -1038,6 +1042,8 @@
       addSplitRow();
       elements.totalAmount.textContent = '$0.00';
       alert('Transaction submitted successfully!');
+      // Put the cursor back in Payee for the next entry
+      elements.payeeInput.focus();
     } catch (e) {
       console.error('Transaction failed:', e);
       await addToQueue({ transaction: transactionStr, covers: coverStrs });
