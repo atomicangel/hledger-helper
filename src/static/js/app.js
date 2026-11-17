@@ -325,7 +325,8 @@
     barWrap.appendChild(barFill);
     card.appendChild(barWrap);
 
-    // Meta: underwater = bold red "$X overspent"; otherwise funded amounts "$X of $Y funded"
+    // Meta: underwater = bold red "$X overspent"; over = "$X of $Y — $Z over budget";
+    // otherwise funded amounts "$X of $Y funded"
     const meta = document.createElement('div');
     meta.className = 'budget-meta';
     const fmt = n => '$' + Math.abs(n).toFixed(2);
@@ -337,7 +338,7 @@
       meta.style.color = 'var(--danger)';
       meta.style.fontWeight = 'bold';
     } else if (over) {
-      meta.textContent = `${fmt(item.remaining)} over budget`;
+      meta.textContent = `${fmt(item.spent_total)} of ${fmt(item.budget_limit)} — ${fmt(item.remaining)} over budget`;
       meta.style.color = 'var(--success)';
     } else {
       meta.textContent = `${fmt(item.spent_total)} of ${fmt(item.budget_limit)} funded`;
